@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clasificador con Teachable Machine</title>
+
+<!-- TensorFlow y Teachable Machine -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #4e73df, #1cc88a);
+        color: white;
+        text-align: center;
+    }
+
+    header {
+        padding: 30px 20px 10px 20px;
+    }
+
+    h1 {
+        margin-bottom: 10px;
+    }
+
+    p {
+        max-width: 700px;
+        margin: 0 auto 20px auto;
+        font-size: 18px;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #webcam-container {
+        margin-top: 20px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        background: white;
+        padding: 10px;
+    }
+
+    canvas {
+        border-radius: 15px;
+    }
+
+    #label-container {
+        margin-top: 20px;
+        background: rgba(255,255,255,0.2);
+        padding: 15px 25px;
+        border-radius: 15px;
+        backdrop-filter: blur(5px);
+        font-size: 18px;
+        width: 250px;
+    }
+
+    button {
+        background-color: #f6c23e;
+        color: #333;
+        border: none;
+        padding: 12px 25px;
+        font-size: 16px;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-weight: bold;
+    }
+
+    button:hover {
+        background-color: #dda20a;
+        transform: scale(1.05);
+    }
+
+    footer {
+        margin-top: 40px;
+        padding: 20px;
+        font-size: 14px;
+        opacity: 0.8;
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Clasificador de Imágenes en Tiempo Real</h1>
+    <p>
+        Esta aplicación utiliza inteligencia artificial creada con 
+        <strong>Teachable Machine</strong> y TensorFlow.js para reconocer 
+        imágenes a través de tu cámara web en tiempo real.
+    </p>
+</header>
+
+<div class="container">
+    <button onclick="init()">Iniciar Cámara</button>
+
+    <div id="webcam-container"></div>
+
+    <div id="label-container"></div>
+</div>
+
+<footer>
+    Proyecto de Visión Artificial | Modelo creado con Teachable Machine
+</footer>
+
+<script>
+    const URL = "./";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true;
+        webcam = new tmImage.Webcam(300, 300, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").innerHTML = "";
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "";
+        for (let i = 0; i < maxPredictions; i++) {
+            const div = document.createElement("div");
+            labelContainer.appendChild(div);
+        }
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+            const probability = (prediction[i].probability * 100).toFixed(1);
+            labelContainer.childNodes[i].innerHTML =
+                `<strong>${prediction[i].className}</strong>: ${probability}%`;
+        }
+    }
+</script>
+
+</body>
+</html>
